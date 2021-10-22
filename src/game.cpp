@@ -42,27 +42,25 @@ public:
         //initial state
 
         //glider
-        //cells = {
-        //    Cell{0, 2},
-        //    Cell{1, 3},
-        //    Cell{2, 1},
-        //    Cell{2, 2},
-        //    Cell{2, 3},
-        //};
-
         cells = {
-            Cell{4,4},
-            Cell{5,4},
-            Cell{4,5},
-            Cell{5,5},
+            Cell{0, 2},
+            Cell{1, 3},
+            Cell{2, 1},
+            Cell{2, 2},
+            Cell{2, 3},
         };
+
+        //cells = {
+        //    Cell{4,4},
+        //    Cell{5,4},
+        //    Cell{4,5},
+        //    Cell{5,5},
+        //};
 
         new_cells = {};
     }
 
     void run_rules(){
-        std::cout << "Rules" << std::endl;
-
         for (Cell cell : cells){
             int c = neighbour_count(cell);
             if ( 2 <= c && c <= 3){
@@ -128,13 +126,25 @@ public:
 
 public:
     GOLGame game;
-    int xCellCount = 20;
-    int yCellCount = 20;
+
+    //top left cell pos
+    int xPos = 0;
+    int yPos = 0;
+    //The pixel offset to start drawing at
+    int xCellOffset = 10;
+    int yCellOffset = 10;
+
+    //How many pixels to draw each cell with
+    int xCellPixels = 20;
+    int yCellPixels = 20;
+
+    //Border style
     int LRborderWidth = 20;
     int TBborderWidth = 20;
     int cellBorderWidth = 2;
-    int xCellPixels;
-    int yCellPixels;
+
+    //The total number of cells that are displayed, rounded up
+    int xCellCount, yCellCount;
 
     olc::Pixel BorderColour = olc::DARK_GREY;
     olc::Pixel EmptyCellColour = olc::GREY;
@@ -142,15 +152,23 @@ public:
 
 	bool OnUserCreate() override
 	{
-        xCellPixels = (ScreenWidth() - 2*LRborderWidth - (xCellCount-1)*cellBorderWidth)/xCellCount;
-        yCellPixels = (ScreenHeight() - 2*TBborderWidth - (yCellCount-1)*cellBorderWidth)/yCellCount;
-        drawEmptyBoard();
+        //ChangeZoom();
+        //drawEmptyBoard();
 		return true;
 	}
 
+    void ChangeZoom() {
+        //xCellPixels = (ScreenWidth() - 2*LRborderWidth - (xCellCount-1)*cellBorderWidth)/xCellCount;
+        //yCellPixels = (ScreenHeight() - 2*TBborderWidth - (yCellCount-1)*cellBorderWidth)/yCellCount;
+    }
+
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-        draw();
+        //draw();
+        highlightCell(Cell{0,0});
+        highlightCell(Cell{1,0});
+        highlightCell(Cell{0,1});
+        highlightCell(Cell{1,1});
 		return true;
 	}
 
@@ -197,10 +215,33 @@ public:
     }
 
     void colourCell(Cell cell, olc::Pixel colour){
-        int xPx = LRborderWidth + cell.x*(xCellPixels + cellBorderWidth);
-        int yPx = TBborderWidth + cell.y*(yCellPixels + cellBorderWidth);
+        if (cell.x < xPos || cell.y < yPos) return;
 
-        FillRect(xPx, yPx, xCellCount, yCellCount, colour);
+        int onScreenOffsetX = cell.x - xPos;
+        int actualXRoot;
+
+        if (onScreenOffsetX == 0){
+            actualXRoot = LRborderWidth;
+        } else {
+            actualXRoot = xCellPixels*(onScreenOffsetX-1) + xCellOffset + onScreenOffsetX*cellBorderWidth + LRborderWidth;
+        }
+        if (actualXRoot > ScreenWidth() - LRborderWidth) return;
+
+        int onScreenOffsetY = cell.y - yPos;
+        int actualYRoot;
+
+        if (onScreenOffsetY == 0){
+            actualYRoot = TBborderWidth;
+        } else {
+            actualYRoot = yCellPixels*(onScreenOffsetY-1) + yCellOffset + onScreenOffsetY*cellBorderWidth + TBborderWidth;
+        }
+        if (actualYRoot > ScreenHeight() - TBborderWidth) return;
+
+        int xWidth = onScreenOffsetX== 0 ? xCellPixels-xCellOffset : xCellPixels;
+        int yWidth = onScreenOffsetY== 0 ? yCellPixels-yCellOffset : yCellPixels;
+
+        std::cout << actualXRoot << " " << actualYRoot << " " << actualXRoot << std::endl;
+        FillRect(actualXRoot, actualYRoot, xWidth, yWidth, colour);
     }
 };
 
