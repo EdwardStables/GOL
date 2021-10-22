@@ -6,33 +6,109 @@
 struct Cell {
     int x;
     int y;
+
+    Cell operator+(const Cell& other){
+        return Cell{x+other.x, y+other.y};
+    }
+
+    bool operator==(const Cell& other){
+        return x==other.x && y == other.y;
+    }
 };
 
 class GOLGame {
 public:
+    std::vector<Cell> new_cells;
     std::vector<Cell> cells;
     time_t last_time;
     int max_x = 20; 
     int max_y = 20;
 
+    Cell neighbour_offsets[8] = {
+        {1,0},
+        {1,1},
+        {0,1},
+        {-1,1},
+        {-1,0},
+        {-1,-1},
+        {0,-1},
+        {1,-1}
+    };
+
+
     GOLGame()
     {
         last_time = time(NULL);
+        //initial state
+
+        //glider
+        //cells = {
+        //    Cell{0, 2},
+        //    Cell{1, 3},
+        //    Cell{2, 1},
+        //    Cell{2, 2},
+        //    Cell{2, 3},
+        //};
+
         cells = {
-            Cell{0, 0}
+            Cell{4,4},
+            Cell{5,4},
+            Cell{4,5},
+            Cell{5,5},
         };
+
+        new_cells = {};
+    }
+
+    void run_rules(){
+        std::cout << "Rules" << std::endl;
+
+        for (Cell cell : cells){
+            int c = neighbour_count(cell);
+            if ( 2 <= c && c <= 3){
+                new_cells.push_back(cell);
+            }
+        }
+
+        for (Cell cell : cells){
+            for (Cell offset : neighbour_offsets){
+                Cell trial = cell+offset;
+                if (is_dead(trial) && !cell_in_vector(trial, new_cells) && neighbour_count(trial) == 3){
+                    new_cells.push_back(trial);
+                }
+            }
+        }
+    }
+
+    bool cell_in_vector(Cell cell, std::vector<Cell> vec){
+        for (Cell c : vec)
+            if (cell == c)
+                return true;
+        return false;
+    }
+
+    bool is_dead(Cell cell){
+        return !cell_in_vector(cell, cells);
+    }
+
+    int neighbour_count(Cell cell){
+        int count = 0;
+
+        for (Cell offset : neighbour_offsets)
+            if (!is_dead(offset + cell)) 
+                count++;
+
+        return count;
     }
 
     bool update(){
         time_t current_time = time(NULL);
         if (current_time != last_time){
-            cells[0].x++;
-            cells[0].y++;
 
-            if (cells[0].x >= max_x || cells[0].y >= max_y){
-                cells[0].x = 0;
-                cells[0].y = 0;
-            }
+            run_rules();
+            cells = new_cells;
+            new_cells = {};
+
             last_time = current_time;
             return true;
         }
@@ -74,20 +150,22 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-        bool should_update = game.update();
+        draw();
+		return true;
+	}
 
-        if (should_update) {
+    void draw(){
+        if (game.update()) {
             clearAllCells();
             for (Cell c : game.cells){
                 highlightCell(c);
             }
         }
-		return true;
-	}
+    }
 
     void drawEmptyBoard(){
         drawBorders();
-        clearAllCells();
+        draw();
     }
     void clearAllCells(){
         for (int x = 0; x < xCellCount; x++){
